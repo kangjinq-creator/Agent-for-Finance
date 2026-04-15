@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KASB 회계기준 Q&A</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Noto Sans KR', -apple-system, sans-serif; overflow: hidden; }
+    @keyframes kasbBounce {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+    textarea:focus { outline: none; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useRef, useEffect } = React;
+
+    const SYSTEM_PROMPT = `당신은 한국회계기준원(KASB) 공식 자료를 기반으로 답변하는 K-IFRS 및 일반기업회계기준 전문 회계 자문 AI입니다.
+
+핵심 원칙:
+1. 출처 제한: 회계기준 관련 답변의 근거는 반드시 KASB 공식 자료(kasb.or.kr)에서 가져옵니다.
+2. 출처 명시: 모든 답변에 기준서 번호, 문단 번호, 질의회신 번호 등을 명기합니다.
+3. 정확성 우선: 확인되지 않은 내용은 답변하지 않고, 확인이 필요함을 명시합니다.
+4. 실무 연계: 기준서 원문 해석과 함께 실무 적용 시사점을 제공합니다.
+
+답변 형식:
+- 질문 요약 → 기준서 근거(번호·문단) → 해석 및 답변 → 실무 시사점 → 출처
+- 핵심 회계 용어는 영어 원문을 병기합니다 (예: 수익인식(Revenue Recognition))
+- 한국어로 답변합니다
+- KASB 공식 자료에서 확인할 수 없는 내용은 "KASB 공식 자료에서 직접 확인이 필요합니다"라고 명시합니다.
+
+K-IFRS 기준서 번호 체계:
+- K-IFRS 제1001호 ~ 제1041호 (IAS 대응)
+- K-IFRS 제1101호 ~ 제1117호 (IFRS 대응)
+- K-IFRS 제2101호 ~ 제2121호 (IFRIC/SIC 대응)`;
+
+    const SAMPLE_QUESTIONS = [
+      "K-IFRS 1115호 수익인식의 5단계 모형을 설명해주세요",
+      "K-IFRS 1116호 리스 회계처리 기준은?",
+      "K-IFRS 1032호 금융상품 표시 기준은?",
+      "무형자산(K-IFRS 1038호) 인식 요건은?",
+    ];
+
+    function TypingIndicator() {
+      return (
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: 7, height: 7, borderRadius: "50%",
+                background: "#64748b",
+                animation: "kasbBounce 1.4s infinite ease-in-out",
+                animationDelay: `${i * 0.16}s`,
+              }}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    function renderInline(text) {
+      const parts = text.split(/(\*\*[^*]+\*\*)/g);
+      return parts.map((part, i) => {
+        if (part.startsWith("**") && part.endsWith("**")) {
+          return <strong key={i} style={{ color: "#0f172a", fontWeight: 700 }}>{part.slice(2, -2)}</strong>;
+        }
+        return <span key={i}>{part}</span>;
+      });
+    }
+
+    function FormatAnswer({ text }) {
+      if (!text) return null;
+      const lines = text.split("\n");
+      return (
+        <div>
+          {lines.map((line, i) => {
+            if (line.startsWith("### ")) {
+              return (
+                <h3 key={i} style={{
+                  fontFamily: "'Noto Serif KR', Georgia, serif",
+                  fontSize: 15, fontWeight: 700, color: "#1e293b",
+                  margin: "20px 0 8px",
+                  borderBottom: "1px solid #e2e8f0", paddingBottom: 6,
+                }}>{line.replace("### ", "")}</h3>
+              );
+            }
+            if (line.startsWith("## ")) {
+              return (
+                <h2 key={i} style={{
+                  fontFamily: "'Noto Serif KR', Georgia, serif",
+                  fontSize: 17, fontWeight: 700, color: "#0f172a",
+                  margin: "24px 0 10px",
+                  borderBottom: "2px solid #334155", paddingBottom: 8,
+                }}>{line.replace("## ", "")}</h2>
+              );
+            }
+            if (line.startsWith("# ")) {
+              return (
+                <h1 key={i} style={{
+                  fontFamily: "'Noto Serif KR', Georgia, serif",
+                  fontSize: 19, fontWeight: 700, color: "#0f172a",
+                  margin: "24px 0 12px",
+                }}>{line.replace("# ", "")}</h1>
+              );
+            }
+            if (line.startsWith("- ")) {
+              return (
+                <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", paddingLeft: 4 }}>
+                  <span style={{ color: "#475569", fontWeight: 700, flexShrink: 0 }}>•</span>
+                  <span style={{ color: "#334155", lineHeight: 1.7 }}>{renderInline(line.slice(2))}</span>
+                </div>
+              );
+            }
+            if (line.match(/^\d+\.\s/)) {
+              const num = line.match(/^(\d+)\./)[1];
+              return (
+                <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", paddingLeft: 4 }}>
+                  <span style={{
+                    color: "#1e40af", fontWeight: 700, flexShrink: 0,
+                    fontFamily: "'JetBrains Mono', monospace", fontSize: 13,
+                    minWidth: 20, textAlign: "right",
+                  }}>{num}.</span>
+                  <span style={{ color: "#334155", lineHeight: 1.7 }}>{renderInline(line.replace(/^\d+\.\s/, ""))}</span>
+                </div>
+              );
+            }
+            if (line.trim() === "") return <div key={i} style={{ height: 8 }} />;
+            return <p key={i} style={{ margin: "4px 0", color: "#334155", lineHeight: 1.75 }}>{renderInline(line)}</p>;
+          })}
+        </div>
+      );
+    }
+
+    function ApiKeyModal({ onSave }) {
+      const [key, setKey] = useState("");
+      return (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(15,23,42,0.6)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 16, padding: "36px 32px",
+            width: 440, maxWidth: "90vw",
+            boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
+          }}>
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
+                background: "linear-gradient(135deg, #1e3a5f, #3b6d9e)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontSize: 28 }}>🔑</span>
+              </div>
+              <h2 style={{
+                fontFamily: "'Noto Serif KR', serif",
+                fontSize: 18, fontWeight: 700, color: "#0f172a", marginBottom: 8,
+              }}>Anthropic API Key 설정</h2>
+              <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>
+                KASB 회계기준 Q&A 서비스를 이용하려면<br/>
+                Anthropic API Key가 필요합니다.
+              </p>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
+                API Key
+              </label>
+              <input
+                type="password"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && key.trim()) onSave(key.trim()); }}
+                placeholder="sk-ant-..."
+                style={{
+                  width: "100%", padding: "12px 14px", fontSize: 14,
+                  border: "1.5px solid #d1d5db", borderRadius: 10,
+                  fontFamily: "'JetBrains Mono', monospace",
+                  outline: "none", transition: "border-color 0.15s",
+                }}
+                onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+                autoFocus
+              />
+            </div>
+
+            <button
+              onClick={() => key.trim() && onSave(key.trim())}
+              disabled={!key.trim()}
+              style={{
+                width: "100%", padding: "12px 0", fontSize: 14, fontWeight: 600,
+                color: "#fff", border: "none", borderRadius: 10,
+                cursor: key.trim() ? "pointer" : "not-allowed",
+                background: key.trim()
+                  ? "linear-gradient(135deg, #1e3a5f, #2d5a87)"
+                  : "#94a3b8",
+                boxShadow: key.trim() ? "0 4px 12px rgba(30,58,95,0.3)" : "none",
+                transition: "all 0.15s",
+              }}
+            >시작하기</button>
+
+            <div style={{
+              marginTop: 16, padding: "12px 14px",
+              background: "#fefce8", borderRadius: 8,
+              border: "1px solid #fde68a",
+            }}>
+              <p style={{ fontSize: 11.5, color: "#92400e", lineHeight: 1.6 }}>
+                API Key는 브라우저의 localStorage에 저장되며 외부로 전송되지 않습니다.
+                Anthropic API 직접 호출에만 사용됩니다.
+              </p>
+            </div>
+
+            <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
+              API Key가 없으신가요?{" "}
+              <a href="https://console.anthropic.com/" target="_blank" rel="noopener noreferrer"
+                style={{ color: "#3b82f6", textDecoration: "none" }}
+              >Anthropic Console</a>에서 발급받으세요.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    function KASBApp() {
+      const [apiKey, setApiKey] = useState(() => {
+        try { return localStorage.getItem("kasb_api_key") || ""; } catch { return ""; }
+      });
+      const [showKeyModal, setShowKeyModal] = useState(!apiKey);
+      const [question, setQuestion] = useState("");
+      const [qaList, setQaList] = useState([]);
+      const [selectedIdx, setSelectedIdx] = useState(null);
+      const [loading, setLoading] = useState(false);
+      const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
+      const answerRef = useRef(null);
+
+      useEffect(() => {
+        if (answerRef.current) answerRef.current.scrollTop = 0;
+      }, [selectedIdx]);
+
+      const handleSaveKey = (key) => {
+        setApiKey(key);
+        try { localStorage.setItem("kasb_api_key", key); } catch {}
+        setShowKeyModal(false);
+      };
+
+      const handleSubmit = async (q) => {
+        const trimmed = (q || question).trim();
+        if (!trimmed || loading || !apiKey) return;
+
+        const newIdx = qaList.length;
+        setQaList((prev) => [...prev, { question: trimmed, answer: null, loading: true, error: null }]);
+        setSelectedIdx(newIdx);
+        setQuestion("");
+        setLoading(true);
+
+        // 모바일에서는 sidebar 자동 닫기
+        if (window.innerWidth <= 768) setSidebarOpen(false);
+
+        try {
+          const response = await fetch("https://api.anthropic.com/v1/messages", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "x-api-key": apiKey,
+              "anthropic-version": "2023-06-01",
+              "anthropic-dangerous-direct-browser-access": "true",
+            },
+            body: JSON.stringify({
+              model: "claude-sonnet-4-20250514",
+              max_tokens: 4096,
+              system: SYSTEM_PROMPT,
+              messages: [{ role: "user", content: trimmed }],
+              tools: [{ type: "web_search_20250305", name: "web_search" }],
+            }),
+          });
+
+          if (response.status === 401) {
+            throw new Error("API Key가 유효하지 않습니다. 설정에서 다시 입력해주세요.");
+          }
+          if (!response.ok) throw new Error(`API 호출 실패 (${response.status})`);
+
+          const data = await response.json();
+          const textParts = data.content
+            .filter((c) => c.type === "text")
+            .map((c) => c.text)
+            .join("\n");
+
+          setQaList((prev) => prev.map((item, idx) =>
+            idx === newIdx ? { ...item, answer: textParts || "답변을 생성하지 못했습니다.", loading: false } : item
+          ));
+        } catch (err) {
+          setQaList((prev) => prev.map((item, idx) =>
+            idx === newIdx ? { ...item, answer: null, loading: false, error: err.message } : item
+          ));
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      const handleKeyDown = (e) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+          e.preventDefault();
+          handleSubmit();
+        }
+      };
+
+      const handleDelete = (idx, e) => {
+        e.stopPropagation();
+        setQaList((prev) => prev.filter((_, i) => i !== idx));
+        if (selectedIdx === idx) setSelectedIdx(null);
+        else if (selectedIdx > idx) setSelectedIdx(selectedIdx - 1);
+      };
+
+      const selected = selectedIdx !== null ? qaList[selectedIdx] : null;
+
+      return (
+        <div style={{
+          height: "100vh", display: "flex", flexDirection: "column",
+          fontFamily: "'Noto Sans KR', -apple-system, sans-serif",
+          background: "#f1f5f9", overflow: "hidden",
+        }}>
+          {showKeyModal && <ApiKeyModal onSave={handleSaveKey} />}
+
+          {/* Header */}
+          <header style={{
+            height: 56, flexShrink: 0,
+            display: "flex", alignItems: "center", padding: "0 20px", gap: 14,
+            background: "linear-gradient(135deg, #0f2235 0%, #1e3a5f 100%)",
+            borderBottom: "1px solid rgba(255,255,255,0.08)",
+            justifyContent: "space-between",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{
+                background: "none", border: "none", cursor: "pointer", padding: 4,
+                color: "rgba(255,255,255,0.7)", fontSize: 18, lineHeight: 1, display: "flex",
+              }}
+                onMouseOver={(e) => e.currentTarget.style.color = "#fff"}
+                onMouseOut={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}
+              >&#9776;</button>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: "rgba(255,255,255,0.12)", display: "flex",
+                alignItems: "center", justifyContent: "center",
+              }}>
+                <span style={{ fontSize: 16 }}>&#9878;</span>
+              </div>
+              <div>
+                <h1 style={{
+                  fontSize: 15, fontWeight: 700, color: "#f8fafc", margin: 0,
+                  fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em",
+                }}>KASB 회계기준 Q&A</h1>
+                <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", margin: 0, marginTop: 1 }}>
+                  한국회계기준원 공식 자료 기반 &middot; K-IFRS &amp; K-GAAP
+                </p>
+              </div>
+            </div>
+
+            <button onClick={() => setShowKeyModal(true)} style={{
+              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
+              borderRadius: 8, padding: "6px 12px", cursor: "pointer",
+              color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 500,
+              display: "flex", alignItems: "center", gap: 6,
+              transition: "all 0.15s",
+            }}
+              onMouseOver={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.18)"; e.currentTarget.style.color = "#fff"; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+            >
+              <span style={{ fontSize: 13 }}>&#128273;</span>
+              API Key 설정
+            </button>
+          </header>
+
+          {/* Body */}
+          <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
+
+            {/* Left Sidebar */}
+            <aside style={{
+              width: sidebarOpen ? 320 : 0, flexShrink: 0,
+              background: "#fff",
+              borderRight: sidebarOpen ? "1px solid #e2e8f0" : "none",
+              display: "flex", flexDirection: "column",
+              transition: "width 0.25s ease",
+              overflow: "hidden",
+            }}>
+              {/* 질문 입력 */}
+              <div style={{
+                padding: 14, borderBottom: "1px solid #e2e8f0",
+                background: "#fafbfc", flexShrink: 0,
+              }}>
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  <textarea
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="회계기준 질문 입력..."
+                    rows={2}
+                    style={{
+                      flex: 1, padding: "10px 12px", fontSize: 13,
+                      border: "1.5px solid #d1d5db", borderRadius: 10,
+                      resize: "none", lineHeight: 1.5,
+                      fontFamily: "'Noto Sans KR', sans-serif",
+                      background: "#fff", color: "#1e293b",
+                      transition: "border-color 0.15s",
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                    onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
+                  />
+                  <button
+                    onClick={() => handleSubmit()}
+                    disabled={!question.trim() || loading}
+                    style={{
+                      padding: "10px 14px", fontSize: 13, fontWeight: 600,
+                      color: "#fff", border: "none", borderRadius: 10,
+                      cursor: !question.trim() || loading ? "not-allowed" : "pointer",
+                      background: !question.trim() || loading
+                        ? "#94a3b8"
+                        : "linear-gradient(135deg, #1e3a5f, #2d5a87)",
+                      boxShadow: !question.trim() || loading ? "none" : "0 2px 6px rgba(30,58,95,0.25)",
+                      transition: "all 0.15s", flexShrink: 0, whiteSpace: "nowrap",
+                    }}
+                  >{loading ? "..." : "전송"}</button>
+                </div>
+              </div>
+
+              {/* 질문 리스트 */}
+              <div style={{ flex: 1, overflowY: "auto" }}>
+                {qaList.length === 0 && (
+                  <div style={{ padding: 20 }}>
+                    <p style={{ fontSize: 12, color: "#94a3b8", textAlign: "center", marginBottom: 16 }}>
+                      아래 예시 질문을 선택하거나<br />직접 질문을 입력해 보세요.
+                    </p>
+                    {SAMPLE_QUESTIONS.map((sq, i) => (
+                      <button key={i} onClick={() => { setQuestion(sq); handleSubmit(sq); }} style={{
+                        display: "block", width: "100%", padding: "10px 14px",
+                        marginBottom: 6, fontSize: 12.5, lineHeight: 1.5,
+                        color: "#475569", background: "#f8fafc",
+                        border: "1px solid #e8ecf1", borderRadius: 8,
+                        cursor: "pointer", textAlign: "left", transition: "all 0.15s",
+                      }}
+                        onMouseOver={(e) => {
+                          e.currentTarget.style.background = "#eef4ff";
+                          e.currentTarget.style.borderColor = "#93c5fd";
+                        }}
+                        onMouseOut={(e) => {
+                          e.currentTarget.style.background = "#f8fafc";
+                          e.currentTarget.style.borderColor = "#e8ecf1";
+                        }}
+                      >
+                        <span style={{ color: "#3b82f6", marginRight: 6, fontSize: 11 }}>Q</span>{sq}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {qaList.map((item, idx) => (
+                  <div
+                    key={idx}
+                    onClick={() => setSelectedIdx(idx)}
+                    style={{
+                      padding: "14px 16px",
+                      borderBottom: "1px solid #f1f5f9",
+                      cursor: "pointer",
+                      background: selectedIdx === idx
+                        ? "linear-gradient(90deg, #eef4ff, #f0f7ff)"
+                        : "transparent",
+                      borderLeft: selectedIdx === idx ? "3px solid #2563eb" : "3px solid transparent",
+                      transition: "all 0.12s",
+                      display: "flex", alignItems: "flex-start", gap: 10,
+                    }}
+                    onMouseOver={(e) => {
+                      if (selectedIdx !== idx) e.currentTarget.style.background = "#fafbfc";
+                    }}
+                    onMouseOut={(e) => {
+                      if (selectedIdx !== idx) e.currentTarget.style.background = "transparent";
+                    }}
+                  >
+                    <div style={{
+                      width: 24, height: 24, borderRadius: 7, flexShrink: 0,
+                      background: selectedIdx === idx
+                        ? "linear-gradient(135deg, #1e3a5f, #2d5a87)"
+                        : "#e2e8f0",
+                      color: selectedIdx === idx ? "#fff" : "#64748b",
+                      fontSize: 11, fontWeight: 700, display: "flex",
+                      alignItems: "center", justifyContent: "center",
+                      transition: "all 0.12s",
+                    }}>{idx + 1}</div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontSize: 13, fontWeight: selectedIdx === idx ? 600 : 400,
+                        color: selectedIdx === idx ? "#0f172a" : "#334155",
+                        margin: 0, lineHeight: 1.5,
+                        overflow: "hidden", textOverflow: "ellipsis",
+                        display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
+                      }}>{item.question}</p>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                        {item.loading && (
+                          <span style={{ fontSize: 10.5, color: "#f59e0b", fontWeight: 500 }}>&#9679; 검색 중</span>
+                        )}
+                        {item.answer && !item.loading && (
+                          <span style={{ fontSize: 10.5, color: "#22c55e", fontWeight: 500 }}>&#9679; 답변 완료</span>
+                        )}
+                        {item.error && (
+                          <span style={{ fontSize: 10.5, color: "#ef4444", fontWeight: 500 }}>&#9679; 오류</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <button onClick={(e) => handleDelete(idx, e)} style={{
+                      background: "none", border: "none", cursor: "pointer",
+                      color: "#cbd5e1", fontSize: 14, padding: "0 2px",
+                      lineHeight: 1, flexShrink: 0, transition: "color 0.12s",
+                    }}
+                      onMouseOver={(e) => e.currentTarget.style.color = "#ef4444"}
+                      onMouseOut={(e) => e.currentTarget.style.color = "#cbd5e1"}
+                    >&#10005;</button>
+                  </div>
+                ))}
+              </div>
+
+              {qaList.length > 0 && (
+                <div style={{
+                  padding: "10px 14px", borderTop: "1px solid #e2e8f0",
+                  background: "#fafbfc", flexShrink: 0,
+                  display: "flex", justifyContent: "space-between", alignItems: "center",
+                }}>
+                  <span style={{ fontSize: 11, color: "#94a3b8" }}>총 {qaList.length}건</span>
+                  <button onClick={() => { setQaList([]); setSelectedIdx(null); }} style={{
+                    fontSize: 11, color: "#94a3b8", background: "none",
+                    border: "none", cursor: "pointer", textDecoration: "underline",
+                  }}
+                    onMouseOver={(e) => e.currentTarget.style.color = "#ef4444"}
+                    onMouseOut={(e) => e.currentTarget.style.color = "#94a3b8"}
+                  >전체 삭제</button>
+                </div>
+              )}
+            </aside>
+
+            {/* Right - 답변 영역 */}
+            <main ref={answerRef} style={{ flex: 1, overflowY: "auto", background: "#f8fafb" }}>
+              {selected === null && (
+                <div style={{
+                  height: "100%", display: "flex", flexDirection: "column",
+                  alignItems: "center", justifyContent: "center", padding: 40,
+                }}>
+                  <div style={{
+                    width: 80, height: 80, borderRadius: 24,
+                    background: "linear-gradient(135deg, #1e3a5f 0%, #3b6d9e 100%)",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 12px 40px rgba(30,58,95,0.18)", marginBottom: 24,
+                  }}>
+                    <span style={{ fontSize: 40 }}>&#128203;</span>
+                  </div>
+                  <h2 style={{
+                    fontFamily: "'Noto Serif KR', serif", fontSize: 20, fontWeight: 700,
+                    color: "#0f172a", margin: "0 0 8px",
+                  }}>회계기준 질의응답</h2>
+                  <p style={{ fontSize: 13.5, color: "#94a3b8", textAlign: "center", lineHeight: 1.7, maxWidth: 360 }}>
+                    왼쪽에서 질문을 입력하거나 예시 질문을 선택하세요.<br />
+                    KASB 공식 자료를 검색하여 답변을 제공합니다.
+                  </p>
+                </div>
+              )}
+
+              {selected && (
+                <div style={{ maxWidth: 780, margin: "0 auto", padding: "32px 36px 48px" }}>
+                  {/* 질문 헤더 */}
+                  <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: "2px solid #1e3a5f" }}>
+                    <div style={{
+                      display: "inline-block", padding: "3px 10px",
+                      background: "#1e3a5f", borderRadius: 5,
+                      fontSize: 10.5, fontWeight: 600, color: "#fff",
+                      letterSpacing: "0.04em", marginBottom: 10,
+                      textTransform: "uppercase",
+                    }}>Question #{selectedIdx + 1}</div>
+                    <h2 style={{
+                      fontFamily: "'Noto Serif KR', serif",
+                      fontSize: 20, fontWeight: 700, color: "#0f172a",
+                      margin: 0, lineHeight: 1.6,
+                    }}>{selected.question}</h2>
+                  </div>
+
+                  {selected.loading && (
+                    <div style={{
+                      padding: "32px 24px", background: "#fff",
+                      borderRadius: 14, border: "1px solid #e2e8f0",
+                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
+                    }}>
+                      <TypingIndicator />
+                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>
+                        KASB(kasb.or.kr) 공식 자료를 검색하고 있습니다...
+                      </p>
+                    </div>
+                  )}
+
+                  {selected.error && (
+                    <div style={{
+                      padding: "20px 24px", background: "#fef2f2",
+                      borderRadius: 14, border: "1px solid #fecaca",
+                    }}>
+                      <p style={{ fontSize: 14, color: "#dc2626", margin: 0, fontWeight: 500 }}>
+                        오류가 발생했습니다: {selected.error}
+                      </p>
+                      {selected.error.includes("API Key") && (
+                        <button onClick={() => setShowKeyModal(true)} style={{
+                          marginTop: 12, padding: "8px 16px", fontSize: 13,
+                          color: "#dc2626", background: "#fff",
+                          border: "1px solid #fecaca", borderRadius: 8,
+                          cursor: "pointer",
+                        }}>API Key 재설정</button>
+                      )}
+                    </div>
+                  )}
+
+                  {selected.answer && !selected.loading && (
+                    <div style={{
+                      padding: "28px 32px", background: "#fff",
+                      borderRadius: 14, border: "1px solid #e2e8f0",
+                      boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+                      fontSize: 14, lineHeight: 1.75, color: "#1e293b",
+                    }}>
+                      <div style={{
+                        display: "flex", alignItems: "center", gap: 8,
+                        marginBottom: 16, paddingBottom: 12,
+                        borderBottom: "1px solid #f1f5f9",
+                      }}>
+                        <div style={{
+                          width: 22, height: 22, borderRadius: 6,
+                          background: "linear-gradient(135deg, #1e3a5f, #2d5a87)",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                        }}>
+                          <span style={{ fontSize: 11, color: "#fff" }}>A</span>
+                        </div>
+                        <span style={{
+                          fontSize: 11, fontWeight: 600, color: "#64748b",
+                          letterSpacing: "0.04em", textTransform: "uppercase",
+                        }}>KASB 기준 답변</span>
+                      </div>
+                      <FormatAnswer text={selected.answer} />
+                    </div>
+                  )}
+
+                  <p style={{
+                    fontSize: 11, color: "#94a3b8", textAlign: "center",
+                    marginTop: 24, lineHeight: 1.6,
+                  }}>
+                    본 답변은 한국회계기준원(KASB) 공식 자료를 기반으로 하나, 최종 판단은 전문가 확인이 필요합니다.
+                  </p>
+                </div>
+              )}
+            </main>
+          </div>
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<KASBApp />);
+  </script>
+</body>
+</html>
