@@ -384,7 +384,108 @@ K-IFRS 기준서 번호 체계:
         .join("\n");
     }
 
+    const ALLOWED_IDS = ["jk", "nathan", "qyu", "annie", "dahlia", "jamie"];
+
+    function LoginScreen({ onLogin }) {
+      const [id, setId] = useState("");
+      const [error, setError] = useState("");
+
+      const handleLogin = () => {
+        const trimmed = id.trim();
+        if (!trimmed) return;
+        if (ALLOWED_IDS.includes(trimmed.toLowerCase())) {
+          try { localStorage.setItem("kasb_user_id", trimmed); } catch {}
+          onLogin(trimmed);
+        } else {
+          setError("등록되지 않은 ID입니다. 관리자에게 문의하세요.");
+        }
+      };
+
+      return (
+        <div style={{
+          height: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
+          background: "linear-gradient(135deg, #0f2235 0%, #1e3a5f 40%, #2d5a87 100%)",
+          fontFamily: "'Noto Sans KR', -apple-system, sans-serif",
+        }}>
+          <div style={{
+            background: "#fff", borderRadius: 20, padding: "48px 40px",
+            width: 420, maxWidth: "90vw",
+            boxShadow: "0 32px 80px rgba(0,0,0,0.3)",
+          }}>
+            <div style={{ textAlign: "center", marginBottom: 32 }}>
+              <div style={{
+                width: 64, height: 64, borderRadius: 20, margin: "0 auto 20px",
+                background: "linear-gradient(135deg, #1e3a5f, #3b6d9e)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                boxShadow: "0 8px 24px rgba(30,58,95,0.3)",
+              }}>
+                <span style={{ fontSize: 32 }}>&#9878;</span>
+              </div>
+              <h1 style={{
+                fontFamily: "'Noto Serif KR', serif",
+                fontSize: 22, fontWeight: 700, color: "#0f172a", marginBottom: 8,
+              }}>KASB 회계기준 · 법령정보 Q&A</h1>
+              <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>
+                한국회계기준원 · 국가법령정보센터 · 사법정보공개포털 기반
+              </p>
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
+                사용자 ID
+              </label>
+              <input
+                type="text"
+                value={id}
+                onChange={(e) => { setId(e.target.value); setError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handleLogin(); }}
+                placeholder="ID를 입력하세요"
+                style={{
+                  width: "100%", padding: "14px 16px", fontSize: 15,
+                  border: error ? "1.5px solid #fca5a5" : "1.5px solid #d1d5db",
+                  borderRadius: 12, transition: "border-color 0.15s",
+                  fontFamily: "'Noto Sans KR', sans-serif", color: "#1e293b",
+                }}
+                onFocus={(e) => e.target.style.borderColor = error ? "#fca5a5" : "#3b82f6"}
+                onBlur={(e) => e.target.style.borderColor = error ? "#fca5a5" : "#d1d5db"}
+                autoFocus
+              />
+            </div>
+
+            {error && (
+              <div style={{
+                marginBottom: 16, padding: "10px 14px",
+                background: "#fef2f2", borderRadius: 8,
+                border: "1px solid #fecaca",
+              }}>
+                <p style={{ fontSize: 12.5, color: "#dc2626", margin: 0, fontWeight: 500 }}>
+                  {error}
+                </p>
+              </div>
+            )}
+
+            <button onClick={handleLogin} disabled={!id.trim()} style={{
+              width: "100%", padding: "14px 0", fontSize: 15, fontWeight: 600,
+              color: "#fff", border: "none", borderRadius: 12,
+              cursor: id.trim() ? "pointer" : "not-allowed",
+              background: id.trim()
+                ? "linear-gradient(135deg, #1e3a5f, #2d5a87)"
+                : "#94a3b8",
+              boxShadow: id.trim() ? "0 4px 16px rgba(30,58,95,0.3)" : "none",
+              transition: "all 0.15s",
+            }}>로그인</button>
+          </div>
+        </div>
+      );
+    }
+
     function KASBApp() {
+      const [userId, setUserId] = useState(() => {
+        try {
+          const saved = localStorage.getItem("kasb_user_id") || "";
+          return ALLOWED_IDS.includes(saved.toLowerCase()) ? saved : "";
+        } catch { return ""; }
+      });
       const [provider, setProvider] = useState(() => {
         try { return localStorage.getItem("kasb_provider") || "gemini"; } catch { return "gemini"; }
       });
@@ -394,7 +495,7 @@ K-IFRS 기준서 번호 체계:
           return localStorage.getItem(PROVIDERS[prov].storageKey) || "";
         } catch { return ""; }
       });
-      const [showKeyModal, setShowKeyModal] = useState(!apiKey);
+      const [showKeyModal, setShowKeyModal] = useState(false);
       const [question, setQuestion] = useState("");
       const [qaList, setQaList] = useState([]);
       const [selectedIdx, setSelectedIdx] = useState(null);
@@ -402,9 +503,19 @@ K-IFRS 기준서 번호 체계:
       const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
       const answerRef = useRef(null);
 
+      // 로그인 후 API Key 없으면 Modal 표시
+      useEffect(() => {
+        if (userId && !apiKey) setShowKeyModal(true);
+      }, [userId]);
+
       useEffect(() => {
         if (answerRef.current) answerRef.current.scrollTop = 0;
       }, [selectedIdx]);
+
+      // 로그인 안 된 상태면 LoginScreen 표시
+      if (!userId) {
+        return <LoginScreen onLogin={(id) => setUserId(id)} />;
+      }
 
       const handleSaveKey = (prov, key) => {
         setProvider(prov);
@@ -507,22 +618,44 @@ K-IFRS 기준서 번호 체계:
               </div>
             </div>
 
-            <button onClick={() => setShowKeyModal(true)} style={{
-              background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
-              borderRadius: 8, padding: "6px 12px", cursor: "pointer",
-              color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 500,
-              display: "flex", alignItems: "center", gap: 6,
-              transition: "all 0.15s",
-            }}
-              onMouseOver={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.18)"; e.currentTarget.style.color = "#fff"; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
-            >
-              <span style={{
-                display: "inline-block", width: 8, height: 8, borderRadius: "50%",
-                background: provInfo.color, marginRight: 2,
-              }}></span>
-              {provInfo.label}
-            </button>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button onClick={() => setShowKeyModal(true)} style={{
+                background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)",
+                borderRadius: 8, padding: "6px 12px", cursor: "pointer",
+                color: "rgba(255,255,255,0.7)", fontSize: 12, fontWeight: 500,
+                display: "flex", alignItems: "center", gap: 6,
+                transition: "all 0.15s",
+              }}
+                onMouseOver={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.18)"; e.currentTarget.style.color = "#fff"; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
+              >
+                <span style={{
+                  display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+                  background: provInfo.color, marginRight: 2,
+                }}></span>
+                {provInfo.label}
+              </button>
+
+              <div style={{
+                display: "flex", alignItems: "center", gap: 6,
+                background: "rgba(255,255,255,0.08)", borderRadius: 8,
+                padding: "6px 10px",
+              }}>
+                <span style={{ fontSize: 12, color: "rgba(255,255,255,0.9)", fontWeight: 500 }}>{userId}</span>
+                <button onClick={() => {
+                  try { localStorage.removeItem("kasb_user_id"); } catch {}
+                  setUserId("");
+                }} style={{
+                  background: "none", border: "none", cursor: "pointer",
+                  color: "rgba(255,255,255,0.4)", fontSize: 11, padding: "0 2px",
+                  transition: "color 0.15s",
+                }}
+                  onMouseOver={(e) => e.currentTarget.style.color = "#fca5a5"}
+                  onMouseOut={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.4)"}
+                  title="로그아웃"
+                >&#10005;</button>
+              </div>
+            </div>
           </header>
 
           {/* Body */}
