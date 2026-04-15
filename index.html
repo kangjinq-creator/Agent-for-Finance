@@ -33,6 +33,7 @@
 1. 출처 제한: 회계기준 관련 답변의 근거는 반드시 아래 공식 출처에서 가져옵니다.
    - KASB 한국회계기준원 (kasb.or.kr): K-IFRS 기준서, 질의회신, 의결서
    - 국가법령정보센터 (www.law.go.kr): 상법, 주식회사 등의 외부감사에 관한 법률, 법인세법, 부가가치세법 등 회계·세무 관련 법령 원문
+   - 법원 사법정보공개포털 (portal.scourt.go.kr): 판례, 결정문, 사법통계 등 법원 공개 정보
 2. 출처 명시: 모든 답변에 기준서 번호, 문단 번호, 질의회신 번호, 법률명·조항 등을 명기합니다.
 3. 정확성 우선: 확인되지 않은 내용은 답변하지 않고, 확인이 필요함을 명시합니다.
 4. 실무 연계: 기준서 원문 해석과 함께 실무 적용 시사점을 제공합니다.
@@ -42,6 +43,7 @@
 - 핵심 회계 용어는 영어 원문을 병기합니다 (예: 수익인식(Revenue Recognition))
 - 한국어로 답변합니다
 - 관련 법령이 있는 경우 국가법령정보센터(https://www.law.go.kr) 링크를 출처에 포함합니다.
+- 관련 판례가 있는 경우 법원 사법정보공개포털(https://portal.scourt.go.kr) 링크를 출처에 포함합니다.
 - KASB 공식 자료에서 확인할 수 없는 내용은 "KASB 공식 자료에서 직접 확인이 필요합니다"라고 명시합니다.
 
 K-IFRS 기준서 번호 체계:
@@ -500,7 +502,7 @@ K-IFRS 기준서 번호 체계:
                   fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em",
                 }}>KASB 회계기준 · 법령정보 Q&A</h1>
                 <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", margin: 0, marginTop: 1 }}>
-                  한국회계기준원 &middot; 국가법령정보센터 기반 &middot; K-IFRS &amp; K-GAAP
+                  한국회계기준원 &middot; 국가법령정보센터 &middot; 사법정보공개포털 기반
                 </p>
               </div>
             </div>
@@ -670,7 +672,7 @@ K-IFRS 기준서 번호 체계:
                   }}>회계기준 질의응답</h2>
                   <p style={{ fontSize: 13.5, color: "#94a3b8", textAlign: "center", lineHeight: 1.7, maxWidth: 360 }}>
                     왼쪽에서 질문을 입력하거나 예시 질문을 선택하세요.<br />
-                    KASB 공식 자료 및 국가법령정보센터를 검색하여 답변을 제공합니다.
+                    KASB, 국가법령정보센터, 사법정보공개포털을 검색하여 답변을 제공합니다.
                   </p>
                 </div>
               )}
@@ -704,7 +706,7 @@ K-IFRS 기준서 번호 체계:
                   {selected.loading && (
                     <div style={{ padding: "32px 24px", background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                       <TypingIndicator />
-                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>KASB · 국가법령정보센터 자료를 검색하고 있습니다...</p>
+                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>KASB · 국가법령정보센터 · 사법정보공개포털 자료를 검색하고 있습니다...</p>
                     </div>
                   )}
 
@@ -738,14 +740,14 @@ K-IFRS 기준서 번호 체계:
                         }}>
                           <span style={{ fontSize: 11, color: "#fff" }}>A</span>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>KASB · 법령 기준 답변</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>KASB · 법령 · 판례 기준 답변</span>
                       </div>
                       <FormatAnswer text={selected.answer} />
                     </div>
                   )}
 
                   <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", marginTop: 24, lineHeight: 1.6 }}>
-                    본 답변은 한국회계기준원(KASB) 및 국가법령정보센터(law.go.kr) 공식 자료를 기반으로 하나, 최종 판단은 전문가 확인이 필요합니다.
+                    본 답변은 한국회계기준원(KASB), 국가법령정보센터(law.go.kr), 사법정보공개포털(portal.scourt.go.kr) 공식 자료를 기반으로 하나, 최종 판단은 전문가 확인이 필요합니다.
                   </p>
                 </div>
               )}
