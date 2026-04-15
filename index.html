@@ -116,15 +116,73 @@ K-IFRS 기준서 번호 체계:
       );
     }
 
+    // === API Key 유효성 검증 함수 ===
+    async function validateApiKey(provider, apiKey) {
+      if (provider === "gemini") {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ role: "user", parts: [{ text: "Hi" }] }],
+            generationConfig: { maxOutputTokens: 1 },
+          }),
+        });
+        if (res.status === 400) {
+          const err = await res.json().catch(() => null);
+          if (err?.error?.message?.includes("API key")) throw new Error("API Key가 유효하지 않습니다.");
+          // 400이지만 key 관련이 아니면 통과 (형식 문제 등)
+          return true;
+        }
+        if (res.status === 401 || res.status === 403) throw new Error("API Key가 유효하지 않습니다.");
+        return true;
+      } else {
+        const res = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-api-key": apiKey,
+            "anthropic-version": "2023-06-01",
+            "anthropic-dangerous-direct-browser-access": "true",
+          },
+          body: JSON.stringify({
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 1,
+            messages: [{ role: "user", content: "Hi" }],
+          }),
+        });
+        if (res.status === 401) throw new Error("API Key가 유효하지 않습니다.");
+        if (res.status === 403) throw new Error("API Key 권한이 부족합니다. Key 설정을 확인해주세요.");
+        return true;
+      }
+    }
+
     function ApiKeyModal({ onSave, onClose, initialProvider, initialKey }) {
       const [provider, setProvider] = useState(initialProvider || "gemini");
       const [key, setKey] = useState(initialKey || "");
+      const [error, setError] = useState("");
+      const [validating, setValidating] = useState(false);
       const p = PROVIDERS[provider];
 
-      // provider 바뀌면 저장된 key 불러오기
+      // provider 바뀌면 저장된 key 불러오기 + 오류 초기화
       useEffect(() => {
         try { setKey(localStorage.getItem(PROVIDERS[provider].storageKey) || ""); } catch { setKey(""); }
+        setError("");
       }, [provider]);
+
+      const handleSave = async () => {
+        if (!key.trim() || validating) return;
+        setError("");
+        setValidating(true);
+        try {
+          await validateApiKey(provider, key.trim());
+          onSave(provider, key.trim());
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setValidating(false);
+        }
+      };
 
       return (
         <div style={{
@@ -195,7 +253,7 @@ K-IFRS 기준서 번호 체계:
                 type="password"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && key.trim()) onSave(provider, key.trim()); }}
+                onKeyDown={(e) => { if (e.key === "Enter" && key.trim()) handleSave(); }}
                 placeholder={p.placeholder}
                 style={{
                   width: "100%", padding: "12px 14px", fontSize: 14,
@@ -210,19 +268,34 @@ K-IFRS 기준서 번호 체계:
             </div>
 
             <button
-              onClick={() => key.trim() && onSave(provider, key.trim())}
-              disabled={!key.trim()}
+              onClick={handleSave}
+              disabled={!key.trim() || validating}
               style={{
                 width: "100%", padding: "12px 0", fontSize: 14, fontWeight: 600,
                 color: "#fff", border: "none", borderRadius: 10,
-                cursor: key.trim() ? "pointer" : "not-allowed",
-                background: key.trim()
-                  ? "linear-gradient(135deg, #1e3a5f, #2d5a87)"
-                  : "#94a3b8",
-                boxShadow: key.trim() ? "0 4px 12px rgba(30,58,95,0.3)" : "none",
+                cursor: !key.trim() || validating ? "not-allowed" : "pointer",
+                background: !key.trim() || validating
+                  ? "#94a3b8"
+                  : "linear-gradient(135deg, #1e3a5f, #2d5a87)",
+                boxShadow: !key.trim() || validating ? "none" : "0 4px 12px rgba(30,58,95,0.3)",
                 transition: "all 0.15s",
               }}
-            >저장 및 시작</button>
+            >{validating ? "검증 중..." : "저장 및 시작"}</button>
+
+            {/* 오류 메시지 */}
+            {error && (
+              <div style={{
+                marginTop: 12, padding: "12px 14px",
+                background: "#fef2f2", borderRadius: 8,
+                border: "1px solid #fecaca",
+                display: "flex", alignItems: "flex-start", gap: 8,
+              }}>
+                <span style={{ color: "#dc2626", fontSize: 16, flexShrink: 0, lineHeight: 1 }}>&#9888;</span>
+                <p style={{ fontSize: 12.5, color: "#dc2626", lineHeight: 1.5, margin: 0, fontWeight: 500 }}>
+                  {error}
+                </p>
+              </div>
+            )}
 
             <div style={{
               marginTop: 16, padding: "12px 14px",
