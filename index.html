@@ -358,6 +358,7 @@
           tools: [{ google_search: {} }],
         }),
       });
+      if (response.status === 429) throw new Error("요청 한도를 초과했습니다. 1분 후 다시 시도해주세요. (Gemini 무료 Tier: 분당 10회, 일 250회)");
       if (response.status === 403 || response.status === 401) throw new Error("API Key가 유효하지 않습니다. 설정에서 다시 입력해주세요.");
       if (response.status === 400) {
         const errData = await response.json().catch(() => null);
@@ -389,6 +390,7 @@
           tools: [{ type: "web_search_20250305", name: "web_search" }],
         }),
       });
+      if (response.status === 429) throw new Error("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.");
       if (response.status === 401) throw new Error("API Key가 유효하지 않습니다. 설정에서 다시 입력해주세요.");
       if (!response.ok) throw new Error(`API 호출 실패 (${response.status})`);
       const data = await response.json();
