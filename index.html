@@ -15,7 +15,7 @@
       0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
       40% { transform: scale(1); opacity: 1; }
     }
-    textarea:focus { outline: none; }
+    textarea:focus, input:focus { outline: none; }
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
@@ -53,19 +53,36 @@ K-IFRS 기준서 번호 체계:
       "무형자산(K-IFRS 1038호) 인식 요건은?",
     ];
 
+    const PROVIDERS = {
+      gemini: {
+        label: "Google Gemini",
+        color: "#4285f4",
+        placeholder: "AIza...",
+        helpUrl: "https://aistudio.google.com/apikey",
+        helpText: "Google AI Studio",
+        description: "무료 Tier 지원 (일 250회)",
+        storageKey: "kasb_gemini_key",
+      },
+      anthropic: {
+        label: "Anthropic Claude",
+        color: "#d97706",
+        placeholder: "sk-ant-...",
+        helpUrl: "https://console.anthropic.com/",
+        helpText: "Anthropic Console",
+        description: "유료 (API Key 별도 발급)",
+        storageKey: "kasb_anthropic_key",
+      },
+    };
+
     function TypingIndicator() {
       return (
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
           {[0, 1, 2].map((i) => (
-            <div
-              key={i}
-              style={{
-                width: 7, height: 7, borderRadius: "50%",
-                background: "#64748b",
-                animation: "kasbBounce 1.4s infinite ease-in-out",
-                animationDelay: `${i * 0.16}s`,
-              }}
-            />
+            <div key={i} style={{
+              width: 7, height: 7, borderRadius: "50%", background: "#64748b",
+              animation: "kasbBounce 1.4s infinite ease-in-out",
+              animationDelay: `${i * 0.16}s`,
+            }} />
           ))}
         </div>
       );
@@ -87,56 +104,11 @@ K-IFRS 기준서 번호 체계:
       return (
         <div>
           {lines.map((line, i) => {
-            if (line.startsWith("### ")) {
-              return (
-                <h3 key={i} style={{
-                  fontFamily: "'Noto Serif KR', Georgia, serif",
-                  fontSize: 15, fontWeight: 700, color: "#1e293b",
-                  margin: "20px 0 8px",
-                  borderBottom: "1px solid #e2e8f0", paddingBottom: 6,
-                }}>{line.replace("### ", "")}</h3>
-              );
-            }
-            if (line.startsWith("## ")) {
-              return (
-                <h2 key={i} style={{
-                  fontFamily: "'Noto Serif KR', Georgia, serif",
-                  fontSize: 17, fontWeight: 700, color: "#0f172a",
-                  margin: "24px 0 10px",
-                  borderBottom: "2px solid #334155", paddingBottom: 8,
-                }}>{line.replace("## ", "")}</h2>
-              );
-            }
-            if (line.startsWith("# ")) {
-              return (
-                <h1 key={i} style={{
-                  fontFamily: "'Noto Serif KR', Georgia, serif",
-                  fontSize: 19, fontWeight: 700, color: "#0f172a",
-                  margin: "24px 0 12px",
-                }}>{line.replace("# ", "")}</h1>
-              );
-            }
-            if (line.startsWith("- ")) {
-              return (
-                <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", paddingLeft: 4 }}>
-                  <span style={{ color: "#475569", fontWeight: 700, flexShrink: 0 }}>•</span>
-                  <span style={{ color: "#334155", lineHeight: 1.7 }}>{renderInline(line.slice(2))}</span>
-                </div>
-              );
-            }
-            if (line.match(/^\d+\.\s/)) {
-              const num = line.match(/^(\d+)\./)[1];
-              return (
-                <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", paddingLeft: 4 }}>
-                  <span style={{
-                    color: "#1e40af", fontWeight: 700, flexShrink: 0,
-                    fontFamily: "'JetBrains Mono', monospace", fontSize: 13,
-                    minWidth: 20, textAlign: "right",
-                  }}>{num}.</span>
-                  <span style={{ color: "#334155", lineHeight: 1.7 }}>{renderInline(line.replace(/^\d+\.\s/, ""))}</span>
-                </div>
-              );
-            }
+            if (line.startsWith("### ")) return <h3 key={i} style={{ fontFamily: "'Noto Serif KR', Georgia, serif", fontSize: 15, fontWeight: 700, color: "#1e293b", margin: "20px 0 8px", borderBottom: "1px solid #e2e8f0", paddingBottom: 6 }}>{line.replace("### ", "")}</h3>;
+            if (line.startsWith("## ")) return <h2 key={i} style={{ fontFamily: "'Noto Serif KR', Georgia, serif", fontSize: 17, fontWeight: 700, color: "#0f172a", margin: "24px 0 10px", borderBottom: "2px solid #334155", paddingBottom: 8 }}>{line.replace("## ", "")}</h2>;
+            if (line.startsWith("# ")) return <h1 key={i} style={{ fontFamily: "'Noto Serif KR', Georgia, serif", fontSize: 19, fontWeight: 700, color: "#0f172a", margin: "24px 0 12px" }}>{line.replace("# ", "")}</h1>;
+            if (line.startsWith("- ")) return <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", paddingLeft: 4 }}><span style={{ color: "#475569", fontWeight: 700, flexShrink: 0 }}>•</span><span style={{ color: "#334155", lineHeight: 1.7 }}>{renderInline(line.slice(2))}</span></div>;
+            if (line.match(/^\d+\.\s/)) { const num = line.match(/^(\d+)\./)[1]; return <div key={i} style={{ display: "flex", gap: 8, margin: "4px 0", paddingLeft: 4 }}><span style={{ color: "#1e40af", fontWeight: 700, flexShrink: 0, fontFamily: "'JetBrains Mono', monospace", fontSize: 13, minWidth: 20, textAlign: "right" }}>{num}.</span><span style={{ color: "#334155", lineHeight: 1.7 }}>{renderInline(line.replace(/^\d+\.\s/, ""))}</span></div>; }
             if (line.trim() === "") return <div key={i} style={{ height: 8 }} />;
             return <p key={i} style={{ margin: "4px 0", color: "#334155", lineHeight: 1.75 }}>{renderInline(line)}</p>;
           })}
@@ -144,8 +116,16 @@ K-IFRS 기준서 번호 체계:
       );
     }
 
-    function ApiKeyModal({ onSave }) {
-      const [key, setKey] = useState("");
+    function ApiKeyModal({ onSave, onClose, initialProvider, initialKey }) {
+      const [provider, setProvider] = useState(initialProvider || "gemini");
+      const [key, setKey] = useState(initialKey || "");
+      const p = PROVIDERS[provider];
+
+      // provider 바뀌면 저장된 key 불러오기
+      useEffect(() => {
+        try { setKey(localStorage.getItem(PROVIDERS[provider].storageKey) || ""); } catch { setKey(""); }
+      }, [provider]);
+
       return (
         <div style={{
           position: "fixed", inset: 0, zIndex: 1000,
@@ -154,51 +134,83 @@ K-IFRS 기준서 번호 체계:
         }}>
           <div style={{
             background: "#fff", borderRadius: 16, padding: "36px 32px",
-            width: 440, maxWidth: "90vw",
+            width: 460, maxWidth: "90vw",
             boxShadow: "0 24px 64px rgba(0,0,0,0.2)",
+            position: "relative",
           }}>
+            {/* 닫기 버튼 */}
+            <button onClick={onClose} style={{
+              position: "absolute", top: 14, right: 14,
+              background: "none", border: "none", cursor: "pointer",
+              color: "#94a3b8", fontSize: 20, lineHeight: 1,
+              width: 32, height: 32, borderRadius: 8,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all 0.15s",
+            }}
+              onMouseOver={(e) => { e.currentTarget.style.background = "#f1f5f9"; e.currentTarget.style.color = "#475569"; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = "none"; e.currentTarget.style.color = "#94a3b8"; }}
+            >&#10005;</button>
+
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{
                 width: 56, height: 56, borderRadius: 16, margin: "0 auto 16px",
                 background: "linear-gradient(135deg, #1e3a5f, #3b6d9e)",
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}>
-                <span style={{ fontSize: 28 }}>🔑</span>
+                <span style={{ fontSize: 28 }}>&#128273;</span>
               </div>
               <h2 style={{
                 fontFamily: "'Noto Serif KR', serif",
                 fontSize: 18, fontWeight: 700, color: "#0f172a", marginBottom: 8,
-              }}>Google Gemini API Key 설정</h2>
+              }}>API 설정</h2>
               <p style={{ fontSize: 13, color: "#64748b", lineHeight: 1.6 }}>
-                KASB 회계기준 Q&A 서비스를 이용하려면<br/>
-                Google Gemini API Key가 필요합니다. (무료)
+                AI Provider를 선택하고 API Key를 입력하세요.
               </p>
             </div>
 
+            {/* Provider 선택 탭 */}
+            <div style={{
+              display: "flex", gap: 8, marginBottom: 20,
+            }}>
+              {Object.entries(PROVIDERS).map(([key, val]) => (
+                <button key={key} onClick={() => setProvider(key)} style={{
+                  flex: 1, padding: "10px 0", fontSize: 13, fontWeight: 600,
+                  borderRadius: 10, cursor: "pointer", transition: "all 0.15s",
+                  border: provider === key ? `2px solid ${val.color}` : "2px solid #e2e8f0",
+                  background: provider === key ? `${val.color}10` : "#fff",
+                  color: provider === key ? val.color : "#64748b",
+                }}>
+                  <div>{val.label}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 400, marginTop: 2, opacity: 0.8 }}>{val.description}</div>
+                </button>
+              ))}
+            </div>
+
+            {/* API Key 입력 */}
             <div style={{ marginBottom: 20 }}>
               <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 6 }}>
-                API Key
+                {p.label} API Key
               </label>
               <input
                 type="password"
                 value={key}
                 onChange={(e) => setKey(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter" && key.trim()) onSave(key.trim()); }}
-                placeholder="AIza..."
+                onKeyDown={(e) => { if (e.key === "Enter" && key.trim()) onSave(provider, key.trim()); }}
+                placeholder={p.placeholder}
                 style={{
                   width: "100%", padding: "12px 14px", fontSize: 14,
-                  border: "1.5px solid #d1d5db", borderRadius: 10,
+                  border: `1.5px solid #d1d5db`, borderRadius: 10,
                   fontFamily: "'JetBrains Mono', monospace",
-                  outline: "none", transition: "border-color 0.15s",
+                  transition: "border-color 0.15s",
                 }}
-                onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
+                onFocus={(e) => e.target.style.borderColor = p.color}
                 onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
                 autoFocus
               />
             </div>
 
             <button
-              onClick={() => key.trim() && onSave(key.trim())}
+              onClick={() => key.trim() && onSave(provider, key.trim())}
               disabled={!key.trim()}
               style={{
                 width: "100%", padding: "12px 0", fontSize: 14, fontWeight: 600,
@@ -210,7 +222,7 @@ K-IFRS 기준서 번호 체계:
                 boxShadow: key.trim() ? "0 4px 12px rgba(30,58,95,0.3)" : "none",
                 transition: "all 0.15s",
               }}
-            >시작하기</button>
+            >저장 및 시작</button>
 
             <div style={{
               marginTop: 16, padding: "12px 14px",
@@ -219,24 +231,83 @@ K-IFRS 기준서 번호 체계:
             }}>
               <p style={{ fontSize: 11.5, color: "#92400e", lineHeight: 1.6 }}>
                 API Key는 브라우저의 localStorage에 저장되며 외부로 전송되지 않습니다.
-                Google Gemini API 직접 호출에만 사용됩니다. (무료 Tier 지원)
+                선택한 AI Provider의 API에만 직접 전송됩니다.
               </p>
             </div>
 
             <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", marginTop: 16, lineHeight: 1.6 }}>
               API Key가 없으신가요?{" "}
-              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener noreferrer"
+              <a href={p.helpUrl} target="_blank" rel="noopener noreferrer"
                 style={{ color: "#3b82f6", textDecoration: "none" }}
-              >Google AI Studio</a>에서 무료로 발급받으세요.
+              >{p.helpText}</a>에서 발급받으세요.
             </p>
           </div>
         </div>
       );
     }
 
+    // === API 호출 함수 ===
+    async function callGemini(apiKey, question) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+          contents: [{ role: "user", parts: [{ text: question }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+          tools: [{ google_search: {} }],
+        }),
+      });
+      if (response.status === 403 || response.status === 401) throw new Error("API Key가 유효하지 않습니다. 설정에서 다시 입력해주세요.");
+      if (response.status === 400) {
+        const errData = await response.json().catch(() => null);
+        throw new Error(`API 호출 실패: ${errData?.error?.message || "요청 형식 오류"}`);
+      }
+      if (!response.ok) throw new Error(`API 호출 실패 (${response.status})`);
+      const data = await response.json();
+      return (data.candidates || [])
+        .flatMap((c) => (c.content?.parts || []))
+        .filter((p) => p.text)
+        .map((p) => p.text)
+        .join("\n");
+    }
+
+    async function callAnthropic(apiKey, question) {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-20250514",
+          max_tokens: 4096,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: "user", content: question }],
+          tools: [{ type: "web_search_20250305", name: "web_search" }],
+        }),
+      });
+      if (response.status === 401) throw new Error("API Key가 유효하지 않습니다. 설정에서 다시 입력해주세요.");
+      if (!response.ok) throw new Error(`API 호출 실패 (${response.status})`);
+      const data = await response.json();
+      return data.content
+        .filter((c) => c.type === "text")
+        .map((c) => c.text)
+        .join("\n");
+    }
+
     function KASBApp() {
+      const [provider, setProvider] = useState(() => {
+        try { return localStorage.getItem("kasb_provider") || "gemini"; } catch { return "gemini"; }
+      });
       const [apiKey, setApiKey] = useState(() => {
-        try { return localStorage.getItem("kasb_api_key") || ""; } catch { return ""; }
+        try {
+          const prov = localStorage.getItem("kasb_provider") || "gemini";
+          return localStorage.getItem(PROVIDERS[prov].storageKey) || "";
+        } catch { return ""; }
       });
       const [showKeyModal, setShowKeyModal] = useState(!apiKey);
       const [question, setQuestion] = useState("");
@@ -250,9 +321,13 @@ K-IFRS 기준서 번호 체계:
         if (answerRef.current) answerRef.current.scrollTop = 0;
       }, [selectedIdx]);
 
-      const handleSaveKey = (key) => {
+      const handleSaveKey = (prov, key) => {
+        setProvider(prov);
         setApiKey(key);
-        try { localStorage.setItem("kasb_api_key", key); } catch {}
+        try {
+          localStorage.setItem("kasb_provider", prov);
+          localStorage.setItem(PROVIDERS[prov].storageKey, key);
+        } catch {}
         setShowKeyModal(false);
       };
 
@@ -261,54 +336,19 @@ K-IFRS 기준서 번호 체계:
         if (!trimmed || loading || !apiKey) return;
 
         const newIdx = qaList.length;
-        setQaList((prev) => [...prev, { question: trimmed, answer: null, loading: true, error: null }]);
+        setQaList((prev) => [...prev, { question: trimmed, answer: null, loading: true, error: null, provider }]);
         setSelectedIdx(newIdx);
         setQuestion("");
         setLoading(true);
-
-        // 모바일에서는 sidebar 자동 닫기
         if (window.innerWidth <= 768) setSidebarOpen(false);
 
         try {
-          const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-          const response = await fetch(GEMINI_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              system_instruction: {
-                parts: [{ text: SYSTEM_PROMPT }]
-              },
-              contents: [
-                { role: "user", parts: [{ text: trimmed }] }
-              ],
-              generationConfig: {
-                temperature: 0.7,
-                maxOutputTokens: 4096,
-              },
-              tools: [{ google_search: {} }],
-            }),
-          });
-
-          if (response.status === 400) {
-            const errData = await response.json().catch(() => null);
-            const errMsg = errData?.error?.message || "요청 형식 오류";
-            throw new Error(`API 호출 실패: ${errMsg}`);
-          }
-          if (response.status === 403 || response.status === 401) {
-            throw new Error("API Key가 유효하지 않습니다. 설정에서 다시 입력해주세요.");
-          }
-          if (!response.ok) throw new Error(`API 호출 실패 (${response.status})`);
-
-          const data = await response.json();
-          const candidates = data.candidates || [];
-          const textParts = candidates
-            .flatMap((c) => (c.content?.parts || []))
-            .filter((p) => p.text)
-            .map((p) => p.text)
-            .join("\n");
+          const text = provider === "gemini"
+            ? await callGemini(apiKey, trimmed)
+            : await callAnthropic(apiKey, trimmed);
 
           setQaList((prev) => prev.map((item, idx) =>
-            idx === newIdx ? { ...item, answer: textParts || "답변을 생성하지 못했습니다.", loading: false } : item
+            idx === newIdx ? { ...item, answer: text || "답변을 생성하지 못했습니다.", loading: false } : item
           ));
         } catch (err) {
           setQaList((prev) => prev.map((item, idx) =>
@@ -320,10 +360,7 @@ K-IFRS 기준서 번호 체계:
       };
 
       const handleKeyDown = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          handleSubmit();
-        }
+        if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit(); }
       };
 
       const handleDelete = (idx, e) => {
@@ -334,6 +371,7 @@ K-IFRS 기준서 번호 체계:
       };
 
       const selected = selectedIdx !== null ? qaList[selectedIdx] : null;
+      const provInfo = PROVIDERS[provider];
 
       return (
         <div style={{
@@ -341,7 +379,14 @@ K-IFRS 기준서 번호 체계:
           fontFamily: "'Noto Sans KR', -apple-system, sans-serif",
           background: "#f1f5f9", overflow: "hidden",
         }}>
-          {showKeyModal && <ApiKeyModal onSave={handleSaveKey} />}
+          {showKeyModal && (
+            <ApiKeyModal
+              onSave={handleSaveKey}
+              onClose={() => { if (apiKey) setShowKeyModal(false); }}
+              initialProvider={provider}
+              initialKey={apiKey}
+            />
+          )}
 
           {/* Header */}
           <header style={{
@@ -387,56 +432,44 @@ K-IFRS 기준서 번호 체계:
               onMouseOver={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.18)"; e.currentTarget.style.color = "#fff"; }}
               onMouseOut={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "rgba(255,255,255,0.7)"; }}
             >
-              <span style={{ fontSize: 13 }}>&#128273;</span>
-              Gemini API Key
+              <span style={{
+                display: "inline-block", width: 8, height: 8, borderRadius: "50%",
+                background: provInfo.color, marginRight: 2,
+              }}></span>
+              {provInfo.label}
             </button>
           </header>
 
           {/* Body */}
           <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-
             {/* Left Sidebar */}
             <aside style={{
-              width: sidebarOpen ? 320 : 0, flexShrink: 0,
-              background: "#fff",
+              width: sidebarOpen ? 320 : 0, flexShrink: 0, background: "#fff",
               borderRight: sidebarOpen ? "1px solid #e2e8f0" : "none",
               display: "flex", flexDirection: "column",
-              transition: "width 0.25s ease",
-              overflow: "hidden",
+              transition: "width 0.25s ease", overflow: "hidden",
             }}>
-              {/* 질문 입력 */}
-              <div style={{
-                padding: 14, borderBottom: "1px solid #e2e8f0",
-                background: "#fafbfc", flexShrink: 0,
-              }}>
+              <div style={{ padding: 14, borderBottom: "1px solid #e2e8f0", background: "#fafbfc", flexShrink: 0 }}>
                 <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
                   <textarea
-                    value={question}
-                    onChange={(e) => setQuestion(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    placeholder="회계기준 질문 입력..."
-                    rows={2}
+                    value={question} onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={handleKeyDown} placeholder="회계기준 질문 입력..." rows={2}
                     style={{
                       flex: 1, padding: "10px 12px", fontSize: 13,
                       border: "1.5px solid #d1d5db", borderRadius: 10,
                       resize: "none", lineHeight: 1.5,
                       fontFamily: "'Noto Sans KR', sans-serif",
-                      background: "#fff", color: "#1e293b",
-                      transition: "border-color 0.15s",
+                      background: "#fff", color: "#1e293b", transition: "border-color 0.15s",
                     }}
                     onFocus={(e) => e.target.style.borderColor = "#3b82f6"}
                     onBlur={(e) => e.target.style.borderColor = "#d1d5db"}
                   />
-                  <button
-                    onClick={() => handleSubmit()}
-                    disabled={!question.trim() || loading}
+                  <button onClick={() => handleSubmit()} disabled={!question.trim() || loading}
                     style={{
                       padding: "10px 14px", fontSize: 13, fontWeight: 600,
                       color: "#fff", border: "none", borderRadius: 10,
                       cursor: !question.trim() || loading ? "not-allowed" : "pointer",
-                      background: !question.trim() || loading
-                        ? "#94a3b8"
-                        : "linear-gradient(135deg, #1e3a5f, #2d5a87)",
+                      background: !question.trim() || loading ? "#94a3b8" : "linear-gradient(135deg, #1e3a5f, #2d5a87)",
                       boxShadow: !question.trim() || loading ? "none" : "0 2px 6px rgba(30,58,95,0.25)",
                       transition: "all 0.15s", flexShrink: 0, whiteSpace: "nowrap",
                     }}
@@ -444,7 +477,6 @@ K-IFRS 기준서 번호 체계:
                 </div>
               </div>
 
-              {/* 질문 리스트 */}
               <div style={{ flex: 1, overflowY: "auto" }}>
                 {qaList.length === 0 && (
                   <div style={{ padding: 20 }}>
@@ -459,14 +491,8 @@ K-IFRS 기준서 번호 체계:
                         border: "1px solid #e8ecf1", borderRadius: 8,
                         cursor: "pointer", textAlign: "left", transition: "all 0.15s",
                       }}
-                        onMouseOver={(e) => {
-                          e.currentTarget.style.background = "#eef4ff";
-                          e.currentTarget.style.borderColor = "#93c5fd";
-                        }}
-                        onMouseOut={(e) => {
-                          e.currentTarget.style.background = "#f8fafc";
-                          e.currentTarget.style.borderColor = "#e8ecf1";
-                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.background = "#eef4ff"; e.currentTarget.style.borderColor = "#93c5fd"; }}
+                        onMouseOut={(e) => { e.currentTarget.style.background = "#f8fafc"; e.currentTarget.style.borderColor = "#e8ecf1"; }}
                       >
                         <span style={{ color: "#3b82f6", marginRight: 6, fontSize: 11 }}>Q</span>{sq}
                       </button>
@@ -475,59 +501,41 @@ K-IFRS 기준서 번호 체계:
                 )}
 
                 {qaList.map((item, idx) => (
-                  <div
-                    key={idx}
-                    onClick={() => setSelectedIdx(idx)}
-                    style={{
-                      padding: "14px 16px",
-                      borderBottom: "1px solid #f1f5f9",
-                      cursor: "pointer",
-                      background: selectedIdx === idx
-                        ? "linear-gradient(90deg, #eef4ff, #f0f7ff)"
-                        : "transparent",
-                      borderLeft: selectedIdx === idx ? "3px solid #2563eb" : "3px solid transparent",
-                      transition: "all 0.12s",
-                      display: "flex", alignItems: "flex-start", gap: 10,
-                    }}
-                    onMouseOver={(e) => {
-                      if (selectedIdx !== idx) e.currentTarget.style.background = "#fafbfc";
-                    }}
-                    onMouseOut={(e) => {
-                      if (selectedIdx !== idx) e.currentTarget.style.background = "transparent";
-                    }}
+                  <div key={idx} onClick={() => setSelectedIdx(idx)} style={{
+                    padding: "14px 16px", borderBottom: "1px solid #f1f5f9", cursor: "pointer",
+                    background: selectedIdx === idx ? "linear-gradient(90deg, #eef4ff, #f0f7ff)" : "transparent",
+                    borderLeft: selectedIdx === idx ? "3px solid #2563eb" : "3px solid transparent",
+                    transition: "all 0.12s", display: "flex", alignItems: "flex-start", gap: 10,
+                  }}
+                    onMouseOver={(e) => { if (selectedIdx !== idx) e.currentTarget.style.background = "#fafbfc"; }}
+                    onMouseOut={(e) => { if (selectedIdx !== idx) e.currentTarget.style.background = "transparent"; }}
                   >
                     <div style={{
                       width: 24, height: 24, borderRadius: 7, flexShrink: 0,
-                      background: selectedIdx === idx
-                        ? "linear-gradient(135deg, #1e3a5f, #2d5a87)"
-                        : "#e2e8f0",
+                      background: selectedIdx === idx ? "linear-gradient(135deg, #1e3a5f, #2d5a87)" : "#e2e8f0",
                       color: selectedIdx === idx ? "#fff" : "#64748b",
                       fontSize: 11, fontWeight: 700, display: "flex",
-                      alignItems: "center", justifyContent: "center",
-                      transition: "all 0.12s",
+                      alignItems: "center", justifyContent: "center", transition: "all 0.12s",
                     }}>{idx + 1}</div>
-
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{
                         fontSize: 13, fontWeight: selectedIdx === idx ? 600 : 400,
                         color: selectedIdx === idx ? "#0f172a" : "#334155",
-                        margin: 0, lineHeight: 1.5,
-                        overflow: "hidden", textOverflow: "ellipsis",
+                        margin: 0, lineHeight: 1.5, overflow: "hidden", textOverflow: "ellipsis",
                         display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical",
                       }}>{item.question}</p>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                        {item.loading && (
-                          <span style={{ fontSize: 10.5, color: "#f59e0b", fontWeight: 500 }}>&#9679; 검색 중</span>
-                        )}
-                        {item.answer && !item.loading && (
-                          <span style={{ fontSize: 10.5, color: "#22c55e", fontWeight: 500 }}>&#9679; 답변 완료</span>
-                        )}
-                        {item.error && (
-                          <span style={{ fontSize: 10.5, color: "#ef4444", fontWeight: 500 }}>&#9679; 오류</span>
+                        {item.loading && <span style={{ fontSize: 10.5, color: "#f59e0b", fontWeight: 500 }}>&#9679; 검색 중</span>}
+                        {item.answer && !item.loading && <span style={{ fontSize: 10.5, color: "#22c55e", fontWeight: 500 }}>&#9679; 답변 완료</span>}
+                        {item.error && <span style={{ fontSize: 10.5, color: "#ef4444", fontWeight: 500 }}>&#9679; 오류</span>}
+                        {item.provider && !item.loading && (
+                          <span style={{
+                            fontSize: 9.5, color: PROVIDERS[item.provider]?.color || "#94a3b8",
+                            fontWeight: 500, opacity: 0.7,
+                          }}>{PROVIDERS[item.provider]?.label}</span>
                         )}
                       </div>
                     </div>
-
                     <button onClick={(e) => handleDelete(idx, e)} style={{
                       background: "none", border: "none", cursor: "pointer",
                       color: "#cbd5e1", fontSize: 14, padding: "0 2px",
@@ -586,15 +594,23 @@ K-IFRS 기준서 번호 체계:
 
               {selected && (
                 <div style={{ maxWidth: 780, margin: "0 auto", padding: "32px 36px 48px" }}>
-                  {/* 질문 헤더 */}
                   <div style={{ marginBottom: 28, paddingBottom: 20, borderBottom: "2px solid #1e3a5f" }}>
-                    <div style={{
-                      display: "inline-block", padding: "3px 10px",
-                      background: "#1e3a5f", borderRadius: 5,
-                      fontSize: 10.5, fontWeight: 600, color: "#fff",
-                      letterSpacing: "0.04em", marginBottom: 10,
-                      textTransform: "uppercase",
-                    }}>Question #{selectedIdx + 1}</div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                      <div style={{
+                        display: "inline-block", padding: "3px 10px",
+                        background: "#1e3a5f", borderRadius: 5,
+                        fontSize: 10.5, fontWeight: 600, color: "#fff",
+                        letterSpacing: "0.04em", textTransform: "uppercase",
+                      }}>Question #{selectedIdx + 1}</div>
+                      {selected.provider && (
+                        <div style={{
+                          display: "inline-block", padding: "3px 10px",
+                          background: PROVIDERS[selected.provider]?.color || "#94a3b8",
+                          borderRadius: 5, fontSize: 10.5, fontWeight: 600, color: "#fff",
+                          letterSpacing: "0.04em",
+                        }}>{PROVIDERS[selected.provider]?.label}</div>
+                      )}
+                    </div>
                     <h2 style={{
                       fontFamily: "'Noto Serif KR', serif",
                       fontSize: 20, fontWeight: 700, color: "#0f172a",
@@ -603,32 +619,20 @@ K-IFRS 기준서 번호 체계:
                   </div>
 
                   {selected.loading && (
-                    <div style={{
-                      padding: "32px 24px", background: "#fff",
-                      borderRadius: 14, border: "1px solid #e2e8f0",
-                      boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                    }}>
+                    <div style={{ padding: "32px 24px", background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                       <TypingIndicator />
-                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>
-                        KASB(kasb.or.kr) 공식 자료를 검색하고 있습니다...
-                      </p>
+                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>KASB(kasb.or.kr) 공식 자료를 검색하고 있습니다...</p>
                     </div>
                   )}
 
                   {selected.error && (
-                    <div style={{
-                      padding: "20px 24px", background: "#fef2f2",
-                      borderRadius: 14, border: "1px solid #fecaca",
-                    }}>
-                      <p style={{ fontSize: 14, color: "#dc2626", margin: 0, fontWeight: 500 }}>
-                        오류가 발생했습니다: {selected.error}
-                      </p>
+                    <div style={{ padding: "20px 24px", background: "#fef2f2", borderRadius: 14, border: "1px solid #fecaca" }}>
+                      <p style={{ fontSize: 14, color: "#dc2626", margin: 0, fontWeight: 500 }}>오류가 발생했습니다: {selected.error}</p>
                       {selected.error.includes("API Key") && (
                         <button onClick={() => setShowKeyModal(true)} style={{
                           marginTop: 12, padding: "8px 16px", fontSize: 13,
                           color: "#dc2626", background: "#fff",
-                          border: "1px solid #fecaca", borderRadius: 8,
-                          cursor: "pointer",
+                          border: "1px solid #fecaca", borderRadius: 8, cursor: "pointer",
                         }}>API Key 재설정</button>
                       )}
                     </div>
@@ -636,15 +640,13 @@ K-IFRS 기준서 번호 체계:
 
                   {selected.answer && !selected.loading && (
                     <div style={{
-                      padding: "28px 32px", background: "#fff",
-                      borderRadius: 14, border: "1px solid #e2e8f0",
-                      boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
+                      padding: "28px 32px", background: "#fff", borderRadius: 14,
+                      border: "1px solid #e2e8f0", boxShadow: "0 1px 6px rgba(0,0,0,0.04)",
                       fontSize: 14, lineHeight: 1.75, color: "#1e293b",
                     }}>
                       <div style={{
                         display: "flex", alignItems: "center", gap: 8,
-                        marginBottom: 16, paddingBottom: 12,
-                        borderBottom: "1px solid #f1f5f9",
+                        marginBottom: 16, paddingBottom: 12, borderBottom: "1px solid #f1f5f9",
                       }}>
                         <div style={{
                           width: 22, height: 22, borderRadius: 6,
@@ -653,19 +655,13 @@ K-IFRS 기준서 번호 체계:
                         }}>
                           <span style={{ fontSize: 11, color: "#fff" }}>A</span>
                         </div>
-                        <span style={{
-                          fontSize: 11, fontWeight: 600, color: "#64748b",
-                          letterSpacing: "0.04em", textTransform: "uppercase",
-                        }}>KASB 기준 답변</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>KASB 기준 답변</span>
                       </div>
                       <FormatAnswer text={selected.answer} />
                     </div>
                   )}
 
-                  <p style={{
-                    fontSize: 11, color: "#94a3b8", textAlign: "center",
-                    marginTop: 24, lineHeight: 1.6,
-                  }}>
+                  <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", marginTop: 24, lineHeight: 1.6 }}>
                     본 답변은 한국회계기준원(KASB) 공식 자료를 기반으로 하나, 최종 판단은 전문가 확인이 필요합니다.
                   </p>
                 </div>
