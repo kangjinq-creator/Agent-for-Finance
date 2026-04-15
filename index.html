@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>KASB 회계기준 Q&A</title>
+  <title>KASB 회계기준 · 국가법령정보 Q&A</title>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&family=Noto+Sans+KR:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -498,9 +498,9 @@ K-IFRS 기준서 번호 체계:
                 <h1 style={{
                   fontSize: 15, fontWeight: 700, color: "#f8fafc", margin: 0,
                   fontFamily: "'Noto Serif KR', serif", letterSpacing: "-0.02em",
-                }}>KASB 회계기준 Q&A</h1>
+                }}>KASB 회계기준 · 법령정보 Q&A</h1>
                 <p style={{ fontSize: 10.5, color: "rgba(255,255,255,0.5)", margin: 0, marginTop: 1 }}>
-                  한국회계기준원 공식 자료 기반 &middot; K-IFRS &amp; K-GAAP
+                  한국회계기준원 &middot; 국가법령정보센터 기반 &middot; K-IFRS &amp; K-GAAP
                 </p>
               </div>
             </div>
@@ -670,7 +670,7 @@ K-IFRS 기준서 번호 체계:
                   }}>회계기준 질의응답</h2>
                   <p style={{ fontSize: 13.5, color: "#94a3b8", textAlign: "center", lineHeight: 1.7, maxWidth: 360 }}>
                     왼쪽에서 질문을 입력하거나 예시 질문을 선택하세요.<br />
-                    KASB 공식 자료를 검색하여 답변을 제공합니다.
+                    KASB 공식 자료 및 국가법령정보센터를 검색하여 답변을 제공합니다.
                   </p>
                 </div>
               )}
@@ -704,7 +704,7 @@ K-IFRS 기준서 번호 체계:
                   {selected.loading && (
                     <div style={{ padding: "32px 24px", background: "#fff", borderRadius: 14, border: "1px solid #e2e8f0", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                       <TypingIndicator />
-                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>KASB(kasb.or.kr) 공식 자료를 검색하고 있습니다...</p>
+                      <p style={{ fontSize: 13, color: "#64748b", margin: "12px 0 0" }}>KASB · 국가법령정보센터 자료를 검색하고 있습니다...</p>
                     </div>
                   )}
 
@@ -738,14 +738,14 @@ K-IFRS 기준서 번호 체계:
                         }}>
                           <span style={{ fontSize: 11, color: "#fff" }}>A</span>
                         </div>
-                        <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>KASB 기준 답변</span>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: "#64748b", letterSpacing: "0.04em", textTransform: "uppercase" }}>KASB · 법령 기준 답변</span>
                       </div>
                       <FormatAnswer text={selected.answer} />
                     </div>
                   )}
 
                   <p style={{ fontSize: 11, color: "#94a3b8", textAlign: "center", marginTop: 24, lineHeight: 1.6 }}>
-                    본 답변은 한국회계기준원(KASB) 공식 자료를 기반으로 하나, 최종 판단은 전문가 확인이 필요합니다.
+                    본 답변은 한국회계기준원(KASB) 및 국가법령정보센터(law.go.kr) 공식 자료를 기반으로 하나, 최종 판단은 전문가 확인이 필요합니다.
                   </p>
                 </div>
               )}
